@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/jhizzle84/gun-service/issues"
   },
-  "homepage": "https://github.com/jhizzle84/gun-service#readme"
+  "homepage": "https://github.com/jhizzle84/gun-service#readme",
+  "devDependencies": {
+    "prettier": "^1.18.2"
+  }
 }
