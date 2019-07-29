@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "format": "prettier --write \"src/**/*.js\"",
-    "start": "node ./src/index.js",
+    "start": "node --experimental-modules ./src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "watch": "nodemon --experimental-modules ./src/index.js"
   },
   "repository": {
     "type": "git",
@@ -31,5 +32,6 @@
     "express": "^4.17.1",
     "gun": "^0.2019.712",
     "socket.io": "^2.2.0"
-  }
+  },
+  "type": "module"
 }
