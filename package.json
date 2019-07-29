@@ -19,7 +19,11 @@
   },
   "homepage": "https://github.com/jhizzle84/gun-service#readme",
   "devDependencies": {
+    "@types/socket.io": "^2.1.2",
     "prettier": "^1.18.2",
     "typescript": "^3.5.3"
+  },
+  "dependencies": {
+    "socket.io": "^2.2.0"
   }
 }
