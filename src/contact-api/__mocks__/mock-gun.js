@@ -17,6 +17,7 @@
  * @typedef {object} Options
  * @prop {boolean=} isAuth If provided, the node will be pre-authenticated (that
  * is, the is prop will be an object, and it will have an string 'pub' prop).
+ * @prop {boolean=} isChildOfRoot True if this node is a child of the root.
  * @prop {boolean=} failUserAuth
  * @prop {boolean=} failUserCreation
  * @prop {(ValidDataValue | ValidDataValue[])=} initialData If it's an array
@@ -142,6 +143,7 @@ export default class MockGun {
    * @param {Options} opts
    */
   constructor({
+    isChildOfRoot,
     failUserAuth,
     failUserCreation,
     initialData,
@@ -189,6 +191,8 @@ export default class MockGun {
         }
       });
     }
+
+    this.isChildOfRoot = !!isChildOfRoot;
 
     //https://github.com/Microsoft/TypeScript/issues/17498#issuecomment-399439654
     /**
@@ -458,8 +462,13 @@ export default class MockGun {
     } else {
       // accessing a non existing key must belong to leaf behaviour
       this.nodeType = "leaf";
+
+      const isRoot = typeof this.key === "undefined";
+      const isUserGraph = typeof this.is !== "undefined";
+
       const newNode = new MockGun({
         initialData: subGraph,
+        isChildOfRoot: isRoot && !isUserGraph,
         key
       });
 
@@ -623,7 +632,14 @@ export default class MockGun {
       throw new Error("Tried to put to a set node");
     }
 
+    const isUserNode = typeof this.is !== "undefined";
+    const isChildOfRoot = this.isChildOfRoot;
+
     if (newData instanceof MockGun) {
+      if (!isUserNode && isChildOfRoot) {
+        throw new Error(`Error: Invalid graph!`);
+      }
+
       const edge = newData;
 
       if (this.nodeType === "leaf") {
@@ -728,6 +744,12 @@ export default class MockGun {
         }
       }
     } else {
+      if (!isUserNode && isChildOfRoot) {
+        throw new Error(
+          `Data saved to the root level of the graph must be a node (an object), not a ${typeof newData} of "${newData}"!`
+        );
+      }
+
       this.graph = newData;
       // we might be seeing a null being put to a node intended to be used as an
       // edge, which can accept null too.

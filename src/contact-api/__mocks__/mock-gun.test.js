@@ -386,7 +386,9 @@ describe("MockGun", () => {
     it("throws an error when, a node has been previously used as a primitive-containing node", done => {
       expect.assertions(1);
 
-      const gun = createMockGun().get(Math.random().toString());
+      const gun = createMockGun()
+        .get(Math.random().toString())
+        .get(Math.random().toString());
 
       gun.put(null, ack => {
         if (!ack.err) {
@@ -717,7 +719,9 @@ describe("MockGun", () => {
     });
 
     it("accepts edges", () => {
-      const gun = createMockGun().get(Math.random().toString());
+      const gun = createMockGun()
+        .get(Math.random().toString())
+        .get(Math.random().toString());
 
       const anotherNode = createMockGun().get(Math.random().toString());
 
@@ -725,7 +729,9 @@ describe("MockGun", () => {
     });
 
     it("throws on invalid data", () => {
-      const gun = createMockGun().get(Math.random().toString());
+      const gun = createMockGun()
+        .get(Math.random().toString())
+        .get(Math.random().toString());
 
       expect(() => {
         // @ts-ignore
@@ -950,7 +956,7 @@ describe("MockGun", () => {
       anotherNode.put(secondData);
     });
 
-    it("stop listening to changes on a edge after nulling it out", () => {
+    it("stops listening to changes on a edge after nulling it out", () => {
       expect.assertions(2);
 
       const gun = createMockGun();
@@ -978,13 +984,13 @@ describe("MockGun", () => {
       });
     });
 
-    it("stop listening to changes on a edge after swapping it out for another one", () => {
+    it("stops listening to changes on a edge after swapping it out for another one", () => {
       expect.assertions(1);
 
       const gun = createMockGun();
 
       const edgeKey = Math.random().toString();
-      const edge = gun.get(edgeKey);
+      const edge = gun.get(Math.random().toString()).get(edgeKey);
 
       const anotherNode = gun.get(Math.random().toString());
       const aThirdNode = gun.get(Math.random().toString());
