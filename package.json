@@ -6,7 +6,8 @@
   "scripts": {
     "format": "prettier --write \"src/**/*.js\"",
     "start": "node --experimental-modules ./src/index.js",
-    "test": "jest",
+    "test": "jest --no-cache",
+    "test:watch": "jest --no-cache --watch",
     "typecheck": "tsc",
     "watch": "nodemon --experimental-modules ./src/index.js"
   },
