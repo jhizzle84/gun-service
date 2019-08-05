@@ -20,29 +20,94 @@ import * as _ from "lodash";
  */
 
 /**
- * @param {(displayName: string|null) => void} cb
- * @param {UserGUNNode=} user Pass only for testing purposes.
- * @throws {Error} If user hasn't been auth.
+ *
+ * @param {string} outgoingKey
+ * @param {(message: Message, key: string) => void} cb
+ * @param {UserGUNNode} user
  * @returns {void}
  */
-export const onDisplayName = (cb, user = userGun) => {
+const __onOutgoingMessage = (outgoingKey, cb, user) => {
   if (!user.is) {
     throw new Error(ErrorCode.NOT_AUTH);
   }
 
-  const u = /** @type {UserGUNNode} */ (user);
-
-  u.get(Key.PROFILE)
-    .get(Key.DISPLAY_NAME)
-    .on(displayName => {
-      if (typeof displayName === "string" || displayName === null) {
-        cb(displayName);
+  user
+    .get(Key.OUTGOINGS)
+    .get(outgoingKey)
+    .get(Key.MESSAGES)
+    .map()
+    .on((data, key) => {
+      if (Schema.isMessage(data)) {
+        cb(data, key);
       }
     });
 };
 
 /**
- * @param {(displayName: string|null) => void} cb
+ * Maps a sent request ID to the public key of the user it was sent to.
+ * @param {(requestToUser: Record<string, string>) => void} cb
+ * @param {UserGUNNode=} user Pass only for testing purposes.
+ * @returns {void}
+ */
+export const __onSentRequestToUser = (cb, user = userGun) => {
+  /** @type {Record<string, string>} */
+  const requestToUser = {};
+
+  if (!user.is) {
+    throw new Error(ErrorCode.NOT_AUTH);
+  }
+
+  user
+    .get(Key.REQUEST_TO_USER)
+    .map()
+    .on((userPK, requestKey) => {
+      if (typeof userPK !== "string") {
+        console.error("got a non string value");
+        return;
+      }
+
+      if (userPK.length === 0) {
+        console.error("got an empty string value");
+        return;
+      }
+
+      requestToUser[requestKey] = userPK;
+
+      cb(requestToUser);
+    });
+};
+
+/**
+ * @param {(userToOutgoing: Record<string, string>) => void} cb
+ * @param {UserGUNNode=} user Pass only for testing purposes.
+ * @returns {void}
+ */
+export const __onUserToIncoming = (cb, user = userGun) => {
+  /** @type {Record<string, string>} */
+  const userToOutgoing = {};
+
+  user
+    .get(Key.USER_TO_INCOMING)
+    .map()
+    .on((data, key) => {
+      if (typeof data !== "string") {
+        console.error("got a non string value");
+        return;
+      }
+
+      if (data.length === 0) {
+        console.error("got an empty string value");
+        return;
+      }
+
+      userToOutgoing[key] = data;
+
+      cb(userToOutgoing);
+    });
+};
+
+/**
+ * @param {(avatar: string|null) => void} cb
  * @param {UserGUNNode=} user Pass only for testing purposes.
  * @throws {Error} If user hasn't been auth.
  * @returns {void}
@@ -64,25 +129,83 @@ export const onAvatar = (cb, user = userGun) => {
 };
 
 /**
- *
- * @param {string} outgoingKey
- * @param {(message: Message, key: string) => void} cb
+ * @param {(blacklist: string[]) => void} cb
  * @param {UserGUNNode} user
  * @returns {void}
  */
-const __onOutgoingMessage = (outgoingKey, cb, user) => {
+export const onBlacklist = (cb, user = userGun) => {
+  /** @type {string[]} */
+  const blacklist = [];
+
   if (!user.is) {
     throw new Error(ErrorCode.NOT_AUTH);
   }
 
   user
-    .get(Key.OUTGOINGS)
-    .get(outgoingKey)
-    .get(Key.MESSAGES)
+    .get(Key.BLACKLIST)
     .map()
-    .on((data, key) => {
-      if (Schema.isMessage(data)) {
-        cb(data, key);
+    .on(publicKey => {
+      if (typeof publicKey === "string" && publicKey.length > 0) {
+        blacklist.push(publicKey);
+        cb(blacklist);
+      } else {
+        console.warn("Invalid public key received for blacklist");
+      }
+    });
+};
+
+/**
+ * @param {(currentHandshakeNode: Record<string, HandshakeRequest>|null) => void} cb
+ * @param {UserGUNNode=} user Pass only for testing purposes.
+ * @returns {void}
+ */
+export const onCurrentHandshakeNode = (cb, user = userGun) => {
+  if (!user.is) {
+    throw new Error(ErrorCode.NOT_AUTH);
+  }
+
+  /**
+   * @type {Record<string, HandshakeRequest>}
+   */
+  const handshakes = {};
+
+  user.get(Key.CURRENT_HANDSHAKE_NODE).on(handshakeNode => {
+    if (handshakeNode === null) {
+      cb(null);
+    } else {
+      user
+        .get(Key.CURRENT_HANDSHAKE_NODE)
+        .once()
+        .map()
+        .once((handshakeReq, key) => {
+          if (Schema.isHandshakeRequest(handshakeReq)) {
+            handshakes[key] = handshakeReq;
+          }
+
+          cb(handshakes);
+        });
+    }
+  });
+};
+
+/**
+ * @param {(displayName: string|null) => void} cb
+ * @param {UserGUNNode=} user Pass only for testing purposes.
+ * @throws {Error} If user hasn't been auth.
+ * @returns {void}
+ */
+export const onDisplayName = (cb, user = userGun) => {
+  if (!user.is) {
+    throw new Error(ErrorCode.NOT_AUTH);
+  }
+
+  const u = /** @type {UserGUNNode} */ (user);
+
+  u.get(Key.PROFILE)
+    .get(Key.DISPLAY_NAME)
+    .on(displayName => {
+      if (typeof displayName === "string" || displayName === null) {
+        cb(displayName);
       }
     });
 };
@@ -191,66 +314,6 @@ export const onOutgoing = (
 };
 
 /**
- * @param {(blacklist: string[]) => void} cb
- * @param {UserGUNNode} user
- * @returns {void}
- */
-export const onBlacklist = (cb, user = userGun) => {
-  /** @type {string[]} */
-  const blacklist = [];
-
-  if (!user.is) {
-    throw new Error(ErrorCode.NOT_AUTH);
-  }
-
-  user
-    .get(Key.BLACKLIST)
-    .map()
-    .on(publicKey => {
-      if (typeof publicKey === "string" && publicKey.length > 0) {
-        blacklist.push(publicKey);
-        cb(blacklist);
-      } else {
-        console.warn("Invalid public key received for blacklist");
-      }
-    });
-};
-
-/**
- * @param {(currentHandshakeNode: Record<string, HandshakeRequest>|null) => void} cb
- * @param {UserGUNNode=} user Pass only for testing purposes.
- * @returns {void}
- */
-export const onCurrentHandshakeNode = (cb, user = userGun) => {
-  if (!user.is) {
-    throw new Error(ErrorCode.NOT_AUTH);
-  }
-
-  /**
-   * @type {Record<string, HandshakeRequest>}
-   */
-  const handshakes = {};
-
-  user.get(Key.CURRENT_HANDSHAKE_NODE).on(handshakeNode => {
-    if (handshakeNode === null) {
-      cb(null);
-    } else {
-      user
-        .get(Key.CURRENT_HANDSHAKE_NODE)
-        .once()
-        .map()
-        .once((handshakeReq, key) => {
-          if (Schema.isHandshakeRequest(handshakeReq)) {
-            handshakes[key] = handshakeReq;
-          }
-
-          cb(handshakes);
-        });
-    }
-  });
-};
-
-/**
  * @param {(sentRequests: Record<string, HandshakeRequest>) => void} cb
  * @param {UserGUNNode=} user Pass only for testing purposes.
  * @returns {void}
@@ -278,69 +341,6 @@ export const onSentRequests = (cb, user = userGun) => {
       sentRequests[reqKey] = req;
 
       cb(sentRequests);
-    });
-};
-
-/**
- * Maps a sent request ID to the public key of the user it was sent to.
- * @param {(requestToUser: Record<string, string>) => void} cb
- * @param {UserGUNNode=} user Pass only for testing purposes.
- * @returns {void}
- */
-export const __onSentRequestToUser = (cb, user = userGun) => {
-  /** @type {Record<string, string>} */
-  const requestToUser = {};
-
-  if (!user.is) {
-    throw new Error(ErrorCode.NOT_AUTH);
-  }
-
-  user
-    .get(Key.REQUEST_TO_USER)
-    .map()
-    .on((userPK, requestKey) => {
-      if (typeof userPK !== "string") {
-        console.error("got a non string value");
-        return;
-      }
-
-      if (userPK.length === 0) {
-        console.error("got an empty string value");
-        return;
-      }
-
-      requestToUser[requestKey] = userPK;
-
-      cb(requestToUser);
-    });
-};
-
-/**
- * @param {(userToOutgoing: Record<string, string>) => void} cb
- * @param {UserGUNNode=} user Pass only for testing purposes.
- * @returns {void}
- */
-export const __onUserToIncoming = (cb, user = userGun) => {
-  /** @type {Record<string, string>} */
-  const userToOutgoing = {};
-
-  user
-    .get(Key.USER_TO_INCOMING)
-    .map()
-    .on((data, key) => {
-      if (typeof data !== "string") {
-        console.error("got a non string value");
-        return;
-      }
-
-      if (data.length === 0) {
-        console.error("got an empty string value");
-        return;
-      }
-
-      userToOutgoing[key] = data;
-
-      cb(userToOutgoing);
     });
 };
 
@@ -499,6 +499,125 @@ export const onChats = (cb, gun = origGun, user = userGun) => {
       }
     }
   }, user);
+};
+
+/**
+ *
+ * @param {(simpleReceivedRequests: SimpleReceivedRequest[]) => void} cb
+ * @param {GUNNode} gun
+ * @param {UserGUNNode} user
+ * @returns {void}
+ */
+export const onSimplerReceivedRequests = (
+  cb,
+  gun = origGun,
+  user = userGun
+) => {
+  if (!user.is) {
+    throw new Error(ErrorCode.NOT_AUTH);
+  }
+
+  /** @type {Record<string, SimpleReceivedRequest>} */
+  const idToReceivedRequest = {};
+
+  /** @type {string[]} */
+  const requestorsWithAvatarListeners = [];
+
+  /** @type {string[]} */
+  const requestorsWithDisplayNameListeners = [];
+
+  /** @type {Set<string>} */
+  const requestorsAlreadyAccepted = new Set();
+
+  user
+    .get(Key.USER_TO_INCOMING)
+    .map()
+    .on((_, userPK) => {
+      requestorsAlreadyAccepted.add(userPK);
+    });
+
+  const callCB = () => {
+    const pendingReceivedRequests = Object.values(idToReceivedRequest);
+
+    // sort from newest to oldest
+    pendingReceivedRequests.sort((a, b) => b.timestamp - a.timestamp);
+
+    // in case the requestor mistakenly sent a dupe request, remove the oldest
+    // one
+    const withoutDups = _.uniqBy(pendingReceivedRequests, rr => rr.requestorPK);
+    // sort again from oldest to newest
+    withoutDups.sort((a, b) => a.timestamp - b.timestamp);
+
+    cb(
+      // remove already accepted requestors
+      withoutDups.filter(rr => !requestorsAlreadyAccepted.has(rr.requestorPK))
+    );
+  };
+
+  callCB();
+
+  user
+    .get(Key.CURRENT_HANDSHAKE_NODE)
+    .map()
+    .on((req, reqID) => {
+      if (!Schema.isHandshakeRequest(req)) {
+        console.warn(`non request received: ${JSON.stringify(req)}`);
+        return;
+      }
+
+      if (!idToReceivedRequest[reqID]) {
+        idToReceivedRequest[reqID] = {
+          id: reqID,
+          requestorAvatar: "",
+          requestorDisplayName: "",
+          requestorPK: req.from,
+          response: req.response,
+          timestamp: req.timestamp
+        };
+      }
+
+      if (!requestorsWithAvatarListeners.includes(req.from)) {
+        requestorsWithAvatarListeners.push(req.from);
+
+        gun
+          .user(req.from)
+          .get(Key.PROFILE)
+          .get(Key.AVATAR)
+          .on(avatar => {
+            if (typeof avatar === "string") {
+              for (const receivedReq of Object.values(idToReceivedRequest)) {
+                if (receivedReq.requestorPK === req.from) {
+                  receivedReq.requestorAvatar = avatar;
+
+                  callCB();
+                }
+              }
+            }
+          });
+      }
+
+      if (!requestorsWithDisplayNameListeners.includes(req.from)) {
+        requestorsWithDisplayNameListeners.push(req.from);
+
+        gun
+          .user(req.from)
+          .get(Key.PROFILE)
+          .get(Key.DISPLAY_NAME)
+          .on(displayName => {
+            if (typeof displayName === "string") {
+              for (const receivedReq of Object.values(idToReceivedRequest)) {
+                if (receivedReq.requestorPK === req.from) {
+                  receivedReq.requestorDisplayName = displayName;
+
+                  callCB();
+                }
+              }
+            }
+          });
+      }
+
+      callCB();
+    });
 };
 
 /**
@@ -666,123 +785,4 @@ export const onSimplerSentRequests = (cb, gun = origGun, user = userGun) => {
 
     callCB();
   }, user);
-};
-
-/**
- *
- * @param {(simpleReceivedRequests: SimpleReceivedRequest[]) => void} cb
- * @param {GUNNode} gun
- * @param {UserGUNNode} user
- * @returns {void}
- */
-export const onSimplerReceivedRequests = (
-  cb,
-  gun = origGun,
-  user = userGun
-) => {
-  if (!user.is) {
-    throw new Error(ErrorCode.NOT_AUTH);
-  }
-
-  /** @type {Record<string, SimpleReceivedRequest>} */
-  const idToReceivedRequest = {};
-
-  /** @type {string[]} */
-  const requestorsWithAvatarListeners = [];
-
-  /** @type {string[]} */
-  const requestorsWithDisplayNameListeners = [];
-
-  /** @type {Set<string>} */
-  const requestorsAlreadyAccepted = new Set();
-
-  user
-    .get(Key.USER_TO_INCOMING)
-    .map()
-    .on((_, userPK) => {
-      requestorsAlreadyAccepted.add(userPK);
-    });
-
-  const callCB = () => {
-    const pendingReceivedRequests = Object.values(idToReceivedRequest);
-
-    // sort from newest to oldest
-    pendingReceivedRequests.sort((a, b) => b.timestamp - a.timestamp);
-
-    // in case the requestor mistakenly sent a dupe request, remove the oldest
-    // one
-    const withoutDups = _.uniqBy(pendingReceivedRequests, rr => rr.requestorPK);
-    // sort again from oldest to newest
-    withoutDups.sort((a, b) => a.timestamp - b.timestamp);
-
-    cb(
-      // remove already accepted requestors
-      withoutDups.filter(rr => !requestorsAlreadyAccepted.has(rr.requestorPK))
-    );
-  };
-
-  callCB();
-
-  user
-    .get(Key.CURRENT_HANDSHAKE_NODE)
-    .map()
-    .on((req, reqID) => {
-      if (!Schema.isHandshakeRequest(req)) {
-        console.warn(`non request received: ${JSON.stringify(req)}`);
-        return;
-      }
-
-      if (!idToReceivedRequest[reqID]) {
-        idToReceivedRequest[reqID] = {
-          id: reqID,
-          requestorAvatar: "",
-          requestorDisplayName: "",
-          requestorPK: req.from,
-          response: req.response,
-          timestamp: req.timestamp
-        };
-      }
-
-      if (!requestorsWithAvatarListeners.includes(req.from)) {
-        requestorsWithAvatarListeners.push(req.from);
-
-        gun
-          .user(req.from)
-          .get(Key.PROFILE)
-          .get(Key.AVATAR)
-          .on(avatar => {
-            if (typeof avatar === "string") {
-              for (const receivedReq of Object.values(idToReceivedRequest)) {
-                if (receivedReq.requestorPK === req.from) {
-                  receivedReq.requestorAvatar = avatar;
-
-                  callCB();
-                }
-              }
-            }
-          });
-      }
-
-      if (!requestorsWithDisplayNameListeners.includes(req.from)) {
-        requestorsWithDisplayNameListeners.push(req.from);
-
-        gun
-          .user(req.from)
-          .get(Key.PROFILE)
-          .get(Key.DISPLAY_NAME)
-          .on(displayName => {
-            if (typeof displayName === "string") {
-              for (const receivedReq of Object.values(idToReceivedRequest)) {
-                if (receivedReq.requestorPK === req.from) {
-                  receivedReq.requestorDisplayName = displayName;
-
-                  callCB();
-                }
-              }
-            }
-          });
-      }
-
-      callCB();
-    });
 };
