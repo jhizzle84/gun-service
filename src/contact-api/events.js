@@ -141,6 +141,8 @@ export const onBlacklist = (cb, user = userGun) => {
     throw new Error(ErrorCode.NOT_AUTH);
   }
 
+  cb(blacklist);
+
   user
     .get(Key.BLACKLIST)
     .map()
