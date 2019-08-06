@@ -5,7 +5,7 @@ import * as ErrorCode from "./errorCode.js";
 import * as Key from "./key.js";
 import { gun as origGun, user as userGun } from "./gun.js";
 import * as Schema from "./schema.js";
-import * as _ from "lodash";
+import uniqBy from "lodash/uniqBy.js";
 /**
  * @typedef {import('./SimpleGUN').UserGUNNode} UserGUNNode
  * @typedef {import('./SimpleGUN').GUNNode} GUNNode
@@ -546,7 +546,7 @@ export const onSimplerReceivedRequests = (
 
     // in case the requestor mistakenly sent a dupe request, remove the oldest
     // one
-    const withoutDups = _.uniqBy(pendingReceivedRequests, rr => rr.requestorPK);
+    const withoutDups = uniqBy(pendingReceivedRequests, rr => rr.requestorPK);
     // sort again from oldest to newest
     withoutDups.sort((a, b) => a.timestamp - b.timestamp);
 
@@ -675,7 +675,7 @@ export const onSimplerSentRequests = (cb, gun = origGun, user = userGun) => {
 
     // since it is reverse sorted, uniqBy will keep the LATEST  sent request for
     // a given recipient
-    const withoutDups = _.uniqBy(sentRequests, sr => sr.recipientPublicKey);
+    const withoutDups = uniqBy(sentRequests, sr => sr.recipientPublicKey);
 
     // sort them from oldest to newest
     withoutDups.sort((a, b) => a.timestamp - b.timestamp);
