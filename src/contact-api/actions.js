@@ -446,11 +446,15 @@ export const setAvatar = (avatar, user = userGun) =>
     }
 
     if (typeof avatar === "string" && avatar.length === 0) {
-      throw new TypeError();
+      throw new TypeError(
+        "'avatar' must be an string and have length greater than one or be null"
+      );
     }
 
     if (typeof avatar !== "string" && avatar !== null) {
-      throw new TypeError();
+      throw new TypeError(
+        "'avatar' must be an string and have length greater than one or be null"
+      );
     }
 
     user
