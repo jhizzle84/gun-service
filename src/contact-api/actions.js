@@ -372,19 +372,23 @@ export const sendHandshakeRequest = (
     }
 
     if (typeof handshakeAddress !== "string") {
-      throw new Error();
+      throw new TypeError(
+        `handshakeAddress is not string, got: ${typeof handshakeAddress}`
+      );
     }
 
     if (typeof recipientPublicKey !== "string") {
-      throw new Error();
+      throw new TypeError(
+        `recipientPublicKey is not string, got: ${typeof recipientPublicKey}`
+      );
     }
 
     if (handshakeAddress.length === 0) {
-      throw new Error();
+      throw new TypeError("handshakeAddress is an string of length 0");
     }
 
     if (recipientPublicKey.length === 0) {
-      throw new Error();
+      throw new TypeError("recipientPublicKey is an string of length 0");
     }
 
     __createOutgoingFeed(recipientPublicKey, user)
