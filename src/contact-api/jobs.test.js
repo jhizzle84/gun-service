@@ -10,7 +10,7 @@ import { createMockGun } from "./__mocks__/mock-gun.js";
 describe("__onAcceptedRequests()", () => {
   it("throws a NOT_AUTH error if supplied with a non authenticated node", () => {
     expect(() => {
-      Jobs.__onAcceptedRequests(() => {}, createMockGun());
+      Jobs.onAcceptedRequests(() => {}, createMockGun());
     }).toThrow();
   });
 
@@ -73,7 +73,7 @@ describe("__onAcceptedRequests()", () => {
         });
     });
 
-    Jobs.__onAcceptedRequests(Events.onSentRequests, user);
+    Jobs.onAcceptedRequests(Events.onSentRequests, user);
 
     await new Promise((res, rej) => {
       user

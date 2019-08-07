@@ -30,7 +30,7 @@ import { user as userGun } from "./gun.js";
  * @throws {Error} NOT_AUTH
  * @param {UserGUNNode=} user Pass only for testing purposes.
  */
-export const __onAcceptedRequests = (
+export const onAcceptedRequests = (
   onSentRequestsFactory = Events.onSentRequests,
   user = userGun
 ) => {
@@ -86,8 +86,4 @@ export const __onAcceptedRequests = (
       }
     }
   }, user);
-};
-
-export const spinupJobs = () => {
-  __onAcceptedRequests();
 };

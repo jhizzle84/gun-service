@@ -749,7 +749,7 @@ describe("onSimplerSentRequests()", () => {
       pub: recipientPK
     };
 
-    Jobs.__onAcceptedRequests(Events.onSentRequests, requestorUser);
+    Jobs.onAcceptedRequests(Events.onSentRequests, requestorUser);
 
     await Actions.generateNewHandshakeNode(gun, recipientUser);
 
@@ -851,7 +851,7 @@ describe("onSimplerSentRequests()", () => {
       pub: requestorPK
     };
 
-    Jobs.__onAcceptedRequests(Events.onSentRequests, pseudoRequestorNode);
+    Jobs.onAcceptedRequests(Events.onSentRequests, pseudoRequestorNode);
 
     await Actions.sendHandshakeRequest(
       recipientHandshakeAddress,
@@ -953,7 +953,7 @@ describe("onSimplerSentRequests()", () => {
       pub: recipientPK
     };
 
-    Jobs.__onAcceptedRequests(Events.onSentRequests, requestorUser);
+    Jobs.onAcceptedRequests(Events.onSentRequests, requestorUser);
 
     await Actions.generateNewHandshakeNode(gun, recipientUser);
 
@@ -1057,7 +1057,7 @@ describe("onSimplerSentRequests()", () => {
       pub: recipientPK
     };
 
-    Jobs.__onAcceptedRequests(Events.onSentRequests, requestorUser);
+    Jobs.onAcceptedRequests(Events.onSentRequests, requestorUser);
 
     await Actions.generateNewHandshakeNode(gun, recipientUser);
 
@@ -1152,7 +1152,7 @@ describe("onSimplerSentRequests()", () => {
         });
     });
 
-    Jobs.__onAcceptedRequests(Events.onSentRequests, requestorUser);
+    Jobs.onAcceptedRequests(Events.onSentRequests, requestorUser);
 
     await Actions.generateNewHandshakeNode(gun, recipientUser);
 
@@ -1245,7 +1245,7 @@ describe("onSimplerSentRequests()", () => {
         });
     });
 
-    Jobs.__onAcceptedRequests(Events.onSentRequests, requestorUser);
+    Jobs.onAcceptedRequests(Events.onSentRequests, requestorUser);
 
     await Actions.generateNewHandshakeNode(gun, recipientUser);
 
