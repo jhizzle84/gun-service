@@ -117,6 +117,9 @@ export const onAvatar = (cb, user = userGun) => {
     throw new Error(ErrorCode.NOT_AUTH);
   }
 
+  // Initial value if avvatar is undefined in gun
+  cb(null);
+
   const u = /** @type {UserGUNNode} */ (user);
 
   u.get(Key.PROFILE)
@@ -141,6 +144,7 @@ export const onBlacklist = (cb, user = userGun) => {
     throw new Error(ErrorCode.NOT_AUTH);
   }
 
+  // Initial value if no items are in blacklist in gun
   cb(blacklist);
 
   user
@@ -231,6 +235,9 @@ export const onDisplayName = (cb, user = userGun) => {
   }
 
   const u = /** @type {UserGUNNode} */ (user);
+
+  // Initial value if display name is undefined in gun
+  cb(null);
 
   u.get(Key.PROFILE)
     .get(Key.DISPLAY_NAME)
