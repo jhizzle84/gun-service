@@ -157,6 +157,35 @@ export const onBlacklist = (cb, user = userGun) => {
 };
 
 /**
+ * @param {(currentHandshakeAddress: string|null) => void} cb
+ * @param {UserGUNNode=} user
+ * @returns {void}
+ */
+export const onCurrentHandshakeAddress = (cb, user = userGun) => {
+  if (!user.is) {
+    throw new Error(ErrorCode.NOT_AUTH);
+  }
+
+  // If undefined, callback below wont be called. Let's supply null as the
+  // initial value.
+  cb(null);
+
+  user.get(Key.CURRENT_HANDSHAKE_NODE).on(handshakeNode => {
+    if (typeof handshakeNode !== "object") {
+      console.error("expected handshakeNode to be of type object");
+
+      return;
+    }
+
+    if (handshakeNode === null) {
+      cb(null);
+    } else {
+      cb(handshakeNode._["#"]);
+    }
+  });
+};
+
+/**
  * @param {(currentHandshakeNode: Record<string, HandshakeRequest>|null) => void} cb
  * @param {UserGUNNode=} user Pass only for testing purposes.
  * @returns {void}

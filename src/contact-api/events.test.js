@@ -134,6 +134,12 @@ describe("onBlacklist()", () => {
   });
 });
 
+describe("onCurrentHandshakeAddress()", () => {
+  it("has no tests", () => {
+    expect(false).toBe(true);
+  });
+});
+
 describe("onCurrentHandshakeNode()", () => {
   it("throws a NOT_AUTH error if supplied with a non authenticated node", done => {
     const fakeGun = createMockGun();
