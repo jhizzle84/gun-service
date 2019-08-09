@@ -175,17 +175,15 @@ export const onCurrentHandshakeAddress = (cb, user = userGun) => {
   cb(null);
 
   user.get(Key.CURRENT_HANDSHAKE_NODE).on(handshakeNode => {
-    if (typeof handshakeNode !== "object") {
+    if (typeof handshakeNode !== "object" || handshakeNode === null) {
       console.error("expected handshakeNode to be of type object");
+
+      cb(null);
 
       return;
     }
 
-    if (handshakeNode === null) {
-      cb(null);
-    } else {
-      cb(handshakeNode._["#"]);
-    }
+    cb(handshakeNode._["#"]);
   });
 };
 
