@@ -102,18 +102,18 @@ describe("onBlacklist()", () => {
       }
     });
 
-    let called = false;
+    let calls = 0;
 
     /**
      * @param {any} data
      */
     const spy = data => {
-      if (!called) {
-        called = true;
-        return;
+      calls++;
+
+      if (calls === 3) {
+        expect(data).toEqual(items);
+        done();
       }
-      expect(data).toEqual(items);
-      done();
     };
 
     Events.onBlacklist(spy, mockGun);
