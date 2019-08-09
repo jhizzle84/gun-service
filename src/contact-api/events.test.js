@@ -121,8 +121,75 @@ describe("onBlacklist()", () => {
 });
 
 describe("onCurrentHandshakeAddress()", () => {
-  it("has no tests", () => {
-    expect(false).toBe(true);
+  it("throws a NOT_AUTH error if supplied with a non authenticated node", done => {
+    expect.assertions(1);
+
+    const user = createMockGun({ isAuth: false });
+
+    try {
+      Events.onCurrentHandshakeAddress(() => {}, user);
+    } catch (e) {
+      expect(e.message).toBe(ErrorCode.NOT_AUTH);
+      done();
+    }
+  });
+
+  it("supplies null when the handshake node isn't assigned.", async done => {
+    expect.assertions(1);
+
+    const gun = createMockGun();
+
+    injectSeaMockToGun(gun);
+
+    const user = gun.user();
+
+    await new Promise((res, rej) => {
+      user.auth(Math.random().toString(), Math.random().toString(), ack => {
+        if (ack.err) {
+          rej(ack.err);
+        } else {
+          res();
+        }
+      });
+    });
+
+    Events.onCurrentHandshakeAddress(addr => {
+      expect(addr).toBe(null);
+      done();
+    }, user);
+  });
+
+  it("supplies an address when the handshake node is assigned.", async done => {
+    expect.assertions(1);
+
+    const gun = createMockGun();
+
+    injectSeaMockToGun(gun);
+
+    const user = gun.user();
+
+    await new Promise((res, rej) => {
+      user.auth(Math.random().toString(), Math.random().toString(), ack => {
+        if (ack.err) {
+          rej(ack.err);
+        } else {
+          res();
+        }
+      });
+    });
+
+    await Actions.generateNewHandshakeNode(gun, user);
+
+    let called = false;
+
+    Events.onCurrentHandshakeAddress(addr => {
+      if (called) {
+        expect(typeof addr).toMatch("string");
+        done();
+      }
+
+      called = true;
+    }, user);
   });
 });
 
