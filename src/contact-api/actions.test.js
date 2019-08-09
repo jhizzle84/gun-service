@@ -731,6 +731,32 @@ describe("sendHandshakeRequest()", () => {
       })
       .catch(e => console.error(e));
   });
+
+  it("creates a recipient to outgoing record", done => {
+    expect.assertions(2);
+
+    const gun = createMockGun();
+    const user = createMockGun({ isAuth: true });
+
+    const handshakeNode = gun.get(Key.HANDSHAKE_NODES).set({ unused: 0 });
+    const handshakeNodeID = /** @type {string} */ (handshakeNode._.get);
+    const recipientEpub = Math.random().toString();
+
+    Actions.sendHandshakeRequest(handshakeNodeID, recipientEpub, gun, user)
+      .then(() => {
+        user
+          .get(Key.RECIPIENT_TO_OUTGOING)
+          .once()
+          .map()
+          .once((oid, recPK) => {
+            expect(typeof oid).toMatch("string");
+            expect(recPK).toMatch(recipientEpub);
+
+            done();
+          });
+      })
+      .catch(e => console.error(e));
+  });
 });
 
 describe("setAvatar()", () => {

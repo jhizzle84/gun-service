@@ -418,11 +418,28 @@ export const sendHandshakeRequest = (
     }
 
     __createOutgoingFeed(recipientPublicKey, user)
-      .then(outgoingFeedID => {
+      .then(async outgoingFeedID => {
         if (typeof user.is === "undefined") {
           reject(new TypeError());
           return;
         }
+
+        await new Promise((res, rej) => {
+          user
+            .get(Key.RECIPIENT_TO_OUTGOING)
+            .get(recipientPublicKey)
+            .put(outgoingFeedID, ack => {
+              if (ack.err) {
+                rej(
+                  new Error(
+                    `error writing to recipientToOutgoing on handshake request creation: ${ack.err}`
+                  )
+                );
+              } else {
+                res();
+              }
+            });
+        });
 
         /** @type {HandshakeRequest} */
         const handshakeRequestData = {
