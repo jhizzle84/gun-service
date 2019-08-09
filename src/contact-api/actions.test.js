@@ -328,6 +328,61 @@ describe("acceptRequest()", () => {
       });
     });
   });
+
+  it("creates a recipient-to-outgoing record", async done => {
+    expect.assertions(1);
+
+    const user = createMockGun({
+      isAuth: true
+    });
+
+    const currentHandshakeNode = user.get(Key.CURRENT_HANDSHAKE_NODE);
+
+    const requestorPK = Math.random().toString();
+
+    /** @type {HandshakeRequest} */
+    const someRequest = {
+      from: requestorPK,
+      response: Math.random().toString(),
+      timestamp: Date.now()
+    };
+
+    /** @type {GUNNode} */
+    const requestNode = await new Promise((res, rej) => {
+      const _reqNode = currentHandshakeNode.set(someRequest, ack => {
+        if (ack.err) {
+          rej(ack.err);
+        } else {
+          res(_reqNode);
+        }
+      });
+    });
+
+    const requestID = /** @type {string} */ (requestNode._.get);
+
+    await Actions.acceptRequest(requestID, user);
+
+    /** @type {string} */
+    const outgoingID = await new Promise(res => {
+      requestNode.once(requestData => {
+        // @ts-ignore
+        const encryptedOutgoingID = requestData.response;
+
+        /** @type {string} */
+        const outgoingID = encryptedOutgoingID.slice("$$_TEST_".length);
+
+        res(outgoingID);
+      });
+    });
+
+    user
+      .get(Key.RECIPIENT_TO_OUTGOING)
+      .get(requestorPK)
+      .once(oid => {
+        expect(oid).toMatch(outgoingID);
+        done();
+      });
+  });
 });
 
 describe("authenticate()", () => {

@@ -179,8 +179,13 @@ export const acceptRequest = (
         return;
       }
 
+      /** @type {string} */
+      let outgoingFeedID;
+
       outgoingFeedCreator(handshakeRequest.from, user)
-        .then(outgoingFeedID => {
+        .then(outfid => {
+          outgoingFeedID = outfid;
+
           return responseToRequestEncryptorAndPutter(
             requestID,
             "$$_TEST",
@@ -188,17 +193,38 @@ export const acceptRequest = (
             user
           );
         })
+        .then(
+          () =>
+            new Promise(res => {
+              user
+                .get(Key.USER_TO_INCOMING)
+                .get(handshakeRequest.from)
+                .put(handshakeRequest.response, ack => {
+                  if (ack.err) {
+                    throw new Error(ack.err);
+                  } else {
+                    res();
+                  }
+                });
+            })
+        )
+        .then(
+          () =>
+            new Promise(res => {
+              user
+                .get(Key.RECIPIENT_TO_OUTGOING)
+                .get(handshakeRequest.from)
+                .put(outgoingFeedID, ack => {
+                  if (ack.err) {
+                    throw new Error(ack.err);
+                  } else {
+                    res();
+                  }
+                });
+            })
+        )
         .then(() => {
-          user
-            .get(Key.USER_TO_INCOMING)
-            .get(handshakeRequest.from)
-            .put(handshakeRequest.response, ack => {
-              if (ack.err) {
-                reject(new Error(ack.err));
-              } else {
-                resolve();
-              }
-            });
+          resolve();
         })
         .catch(() => {
           reject(new Error(ErrorCode.COULDNT_ACCEPT_REQUEST));
