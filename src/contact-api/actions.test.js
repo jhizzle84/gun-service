@@ -104,8 +104,8 @@ describe("__encryptAndPutResponseToRequest", () => {
       Math.random().toString(),
       mockGun
     ).catch(e => {
-      done();
       expect(e).toBeInstanceOf(TypeError);
+      done();
     });
   });
 
