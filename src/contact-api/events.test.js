@@ -86,20 +86,6 @@ describe("onBlacklist()", () => {
     }
   });
 
-  // TODO: Find out if this test being sync can make it break further down the
-  // lane if you tested it with an actual gun node (async)
-  it("does NOT supply an empty array if there are no strings in the blacklist", () => {
-    const mockGun = createMockGun({
-      isAuth: true
-    });
-
-    const spy = jest.fn();
-
-    Events.onBlacklist(spy, mockGun);
-
-    expect(spy).toHaveBeenCalledTimes(0);
-  });
-
   it("supplies the listtener with blacklisted public keys when there are", done => {
     const items = [Math.random().toString(), Math.random().toString()];
     const [first, second] = items;
