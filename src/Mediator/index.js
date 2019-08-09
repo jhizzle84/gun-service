@@ -38,6 +38,7 @@ export default class Mediator {
     socket.on(Action.LOGOUT, this.logout);
     socket.on(Action.REGISTER, this.register);
     socket.on(Action.SEMD_HANDSHAKE_REQUEST, this.sendHandshakeRequest);
+    socket.on(Action.SEND_MESSAGE, this.sendMessage);
     socket.on(Action.SET_AVATAR, this.setAvatar);
     socket.on(Action.SET_DISPLAY_NAME, this.setDisplayName);
 
@@ -352,6 +353,47 @@ export default class Mediator {
             ok: false,
             msg: e.message,
             origBody: body
+          });
+        }
+      });
+  };
+
+  /**
+   * @param {Readonly<{ body: string , recipientPublicKey: string , token: string }>} reqBody
+   */
+  sendMessage = reqBody => {
+    const { body, recipientPublicKey, token } = reqBody;
+    const user = Gun.getUserForToken(token);
+
+    if (user === null) {
+      this.socket.emit(Action.SEND_MESSAGE, {
+        ok: false,
+        msg: "Token expired.",
+        origBody: reqBody
+      });
+
+      return;
+    }
+
+    console.log(`sendMessage ReqBody: ${JSON.stringify(reqBody)}`);
+
+    API.Actions.sendMessage(recipientPublicKey, body, user)
+      .then(() => {
+        if (this.connected) {
+          this.socket.emit(Action.SEND_MESSAGE, {
+            ok: true,
+            msg: null,
+            origBody: reqBody
+          });
+        }
+      })
+      .catch(e => {
+        console.error(e);
+        if (this.connected) {
+          this.socket.emit(Action.SEND_MESSAGE, {
+            ok: false,
+            msg: e.message,
+            origBody: reqBody
           });
         }
       });

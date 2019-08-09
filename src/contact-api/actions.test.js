@@ -4,7 +4,10 @@
 
 import * as Actions from "./actions";
 import * as ErrorCode from "./errorCode";
+import * as Events from "./events";
+import * as Jobs from "./jobs";
 import * as Key from "./key";
+import * as Testing from "./testing";
 import { createMockGun } from "./__mocks__/mock-gun";
 
 /**
@@ -651,6 +654,200 @@ describe("register", () => {
     Actions.register(Math.random().toString(), "", user).catch(e => {
       expect(e).toBeInstanceOf(Error);
       done();
+    });
+  });
+});
+
+describe("sendMessage()", () => {
+  describe("for the sender of a handshake request", () => {
+    it("writes a message to the outgoing feed attached to the request", async done => {
+      expect.assertions(2);
+
+      let calls = 0;
+
+      const msgBody = Math.random().toString();
+
+      const gun = createMockGun();
+
+      Testing.injectSeaMockToGun(gun);
+
+      const user = gun.user();
+
+      await new Promise(res => {
+        user.auth(Math.random().toString(), Math.random().toString(), ack => {
+          if (ack.err) {
+            throw new Error(ack.err);
+          } else {
+            res(ack.err);
+          }
+        });
+      });
+
+      const handshakeNode = gun.get(Key.HANDSHAKE_NODES).set({ unused: 0 });
+      const handshakeAddress = /** @type {string} */ (handshakeNode._.get);
+      const recipientEpub = Math.random().toString();
+
+      await Actions.sendHandshakeRequest(
+        handshakeAddress,
+        recipientEpub,
+        gun,
+        user
+      );
+
+      /** @type {string} */
+      const outgoingID = await new Promise(res => {
+        user
+          .get(Key.OUTGOINGS)
+          .once()
+          .map()
+          .once(outgoing => {
+            if (typeof outgoing === "object" && outgoing !== null) {
+              res(outgoing._["#"]);
+            } else {
+              throw new Error();
+            }
+          });
+      });
+
+      await Actions.sendMessage(recipientEpub, msgBody, user);
+
+      user
+        .get(Key.OUTGOINGS)
+        .get(outgoingID)
+        .get(Key.MESSAGES)
+        .once()
+        .map()
+        .once(msg => {
+          if (typeof msg === "object" && msg !== null) {
+            calls++;
+
+            const matchesInitialOrMsgBody =
+              msg.body === Actions.INITIAL_MSG || msg.body === msgBody;
+
+            expect(matchesInitialOrMsgBody).toBe(true);
+
+            if (calls === 2) {
+              done();
+            }
+          }
+        });
+    });
+  });
+
+  describe("for the recipient of a handshake address", () => {
+    it("writes a message to the outgoing feed created for the request", async done => {
+      expect.assertions(2);
+
+      const msgBody = Math.random().toString();
+
+      const recipientPK = "recipientPK";
+      const requestorPK = "requestorPK";
+
+      const gun = createMockGun();
+
+      let calls = 0;
+
+      Testing.injectSeaMockToGun(gun);
+
+      const recipientUser = gun.user();
+      const requestorUser = gun.user();
+
+      await new Promise((res, rej) => {
+        recipientUser.auth(recipientPK, Math.random().toString(), ack => {
+          if (ack.err) {
+            rej(ack.err);
+          } else {
+            res();
+          }
+        });
+      });
+
+      await new Promise((res, rej) => {
+        requestorUser.auth(requestorPK, Math.random().toString(), ack => {
+          if (ack.err) {
+            rej(ack.err);
+          } else {
+            res();
+          }
+        });
+      });
+
+      Jobs.onAcceptedRequests(Events.onSentRequests, requestorUser);
+
+      await Actions.generateNewHandshakeNode(gun, recipientUser);
+
+      const handshakeAddr = await new Promise((res, rej) => {
+        recipientUser.get(Key.CURRENT_HANDSHAKE_NODE).once(n => {
+          if (typeof n === "object" && n !== null) {
+            res(n._["#"]);
+          } else {
+            rej("wrong node type");
+          }
+        });
+      });
+
+      await Actions.sendHandshakeRequest(
+        handshakeAddr,
+        recipientPK,
+        gun,
+        requestorUser
+      );
+
+      /** @type {string} */
+      const reqID = await new Promise((res, rej) => {
+        Events.onSentRequests(sentRequests => {
+          const [maybePair] = Object.entries(sentRequests);
+
+          if (maybePair) {
+            const [reqID] = maybePair;
+
+            if (typeof reqID) {
+              res(reqID);
+            } else {
+              rej();
+            }
+          }
+        }, requestorUser);
+      });
+
+      await Actions.acceptRequest(reqID, recipientUser);
+
+      await Actions.sendMessage(requestorPK, msgBody, recipientUser);
+
+      const outgoingID = await new Promise(res => {
+        recipientUser
+          .get(Key.OUTGOINGS)
+          .once()
+          .map()
+          .once(outgoing => {
+            if (typeof outgoing === "object" && outgoing !== null) {
+              const outgoingID = outgoing._["#"];
+
+              res(outgoingID);
+            } else {
+              throw new Error();
+            }
+          });
+      });
+
+      recipientUser
+        .get(Key.OUTGOINGS)
+        .get(outgoingID)
+        .get(Key.MESSAGES)
+        .once()
+        .map()
+        .once(msg => {
+          calls++;
+
+          const matchesInitialOrMsgBody =
+            // @ts-ignore
+            msg.body === Actions.INITIAL_MSG || msg.body === msgBody;
+
+          expect(matchesInitialOrMsgBody).toBe(true);
+          if (calls === 2) {
+            done();
+          }
+        });
     });
   });
 });
