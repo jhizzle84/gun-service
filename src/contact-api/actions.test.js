@@ -740,16 +740,19 @@ describe("sendMessage()", () => {
 
       const msgBody = Math.random().toString();
 
+      let calls = 0;
+
       const recipientPK = "recipientPK";
       const requestorPK = "requestorPK";
 
       const gun = createMockGun();
 
-      let calls = 0;
-
       Testing.injectSeaMockToGun(gun);
 
       const recipientUser = gun.user();
+
+      Testing.injectSeaMockToGun(gun);
+
       const requestorUser = gun.user();
 
       await new Promise((res, rej) => {
@@ -821,9 +824,9 @@ describe("sendMessage()", () => {
           .map()
           .once(outgoing => {
             if (typeof outgoing === "object" && outgoing !== null) {
-              const outgoingID = outgoing._["#"];
+              const _outgoingID = outgoing._["#"];
 
-              res(outgoingID);
+              res(_outgoingID);
             } else {
               throw new Error();
             }

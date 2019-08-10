@@ -486,67 +486,73 @@ export const sendHandshakeRequest = (
  * @param {UserGUNNode} user
  * @returns {Promise<void>}
  */
-export const sendMessage = (recipientPublicKey, body, user) =>
-  new Promise((res, rej) => {
-    if (!user.is) {
-      throw new Error(ErrorCode.NOT_AUTH);
-    }
+export const sendMessage = (recipientPublicKey, body, user) => {
+  if (!user.is) {
+    throw new Error(ErrorCode.NOT_AUTH);
+  }
 
-    if (typeof recipientPublicKey !== "string") {
-      throw new TypeError(
-        `expected recipientPublicKey to be an string, but instead got: ${typeof recipientPublicKey}`
-      );
-    }
+  if (typeof recipientPublicKey !== "string") {
+    throw new TypeError(
+      `expected recipientPublicKey to be an string, but instead got: ${typeof recipientPublicKey}`
+    );
+  }
 
-    if (recipientPublicKey.length === 0) {
-      throw new TypeError(
-        "expected recipientPublicKey to be an string of length greater than zero"
-      );
-    }
+  if (recipientPublicKey.length === 0) {
+    throw new TypeError(
+      "expected recipientPublicKey to be an string of length greater than zero"
+    );
+  }
 
-    if (typeof body !== "string") {
-      throw new TypeError(
-        `expected message to be an string, instead got: ${typeof body}`
-      );
-    }
+  if (typeof body !== "string") {
+    throw new TypeError(
+      `expected message to be an string, instead got: ${typeof body}`
+    );
+  }
 
-    if (body.length === 0) {
-      throw new TypeError(
-        "expected message to be an string of length greater than zero"
-      );
-    }
+  if (body.length === 0) {
+    throw new TypeError(
+      "expected message to be an string of length greater than zero"
+    );
+  }
 
+  return new Promise((res, rej) => {
     user
       .get(Key.RECIPIENT_TO_OUTGOING)
       .get(recipientPublicKey)
-      .once(outgoingId => {
-        if (typeof outgoingId === "string") {
-          /** @type {Message} */
-          const newMessage = {
-            body,
-            timestamp: Date.now()
-          };
-
-          user
-            .get(Key.OUTGOINGS)
-            .get(outgoingId)
-            .get(Key.MESSAGES)
-            .set(newMessage, ack => {
-              if (ack.err) {
-                rej(ack.err);
-              } else {
-                res();
-              }
-            });
+      .once(outgoingID => {
+        if (typeof outgoingID === "string") {
+          res(outgoingID);
         } else {
           rej(
             new Error(
-              `Expected outgoingID to be an string, instead got: ${typeof outgoingId}`
+              `Expected outgoingID to be an string, instead got: ${typeof outgoingID}`
             )
           );
         }
       });
-  });
+  }).then(
+    (/** @type {string} */ outgoingID) =>
+      new Promise((res, rej) => {
+        /** @type {Message} */
+        const newMessage = {
+          body,
+          timestamp: Date.now()
+        };
+
+        user
+          .get(Key.OUTGOINGS)
+          .get(outgoingID)
+          .get(Key.MESSAGES)
+          .set(newMessage, ack => {
+            if (ack.err) {
+              rej(ack.err);
+            } else {
+              res();
+            }
+          });
+      })
+  );
+};
 
 /**
  * @param {string|null} avatar
