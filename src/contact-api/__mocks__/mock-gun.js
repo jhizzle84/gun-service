@@ -108,12 +108,6 @@ const isGunNode = o => {
   return true;
 };
 
-/**
- * @param {Options=} opts
- * @returns {UserGUNNode}
- */
-export const createMockGun = opts => new MockGun(opts);
-
 export default class MockGun {
   /**
    * When set() as successfullly been called on this node, or when map() has
@@ -776,12 +770,6 @@ export default class MockGun {
       throw new TypeError();
     }
 
-    if (this.nodeType === "leaf") {
-      throw new Error(
-        "Tried to call set on a node already determined to be used as a leaf node"
-      );
-    }
-
     if (typeof this.graph === "undefined") {
       this.graph = {};
     }
@@ -790,6 +778,12 @@ export default class MockGun {
 
     if (graph instanceof MockGun) {
       return graph.set(newItem, cb);
+    }
+
+    if (this.nodeType === "leaf") {
+      console.warn(
+        "Tried to call set on a node already determined to be used as a leaf node"
+      );
     }
 
     if (graphIsObject(graph)) {
@@ -825,7 +819,7 @@ export default class MockGun {
 
       return newSubNode;
     } else {
-      throw new Error("Tried to call set() on a primitive-graph node");
+      console.warn("Tried to call set() on a primitive-graph node");
     }
   }
 
@@ -836,3 +830,9 @@ export default class MockGun {
     return this;
   }
 }
+
+/**
+ * @param {Options=} opts (Optional)
+ * @returns {UserGUNNode}
+ */
+export const createMockGun = (opts = {}) => new MockGun(opts);

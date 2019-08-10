@@ -58,9 +58,6 @@ export const failCreate = () => {
 
 export const __MOCK_USER_SUPER_NODE = "$$_MOCK_USER_SUPER_NODE";
 
-/** @type {null|string} */
-let storedPublicKey = null;
-
 /**
  * Function which when called will provide an unique public key for the user
  * being authenticated. The default is to simply use the user's alias. This can
@@ -74,6 +71,9 @@ export const injectSeaMockToGun = (
   gun,
   userPublicKeyProvider = alias => alias
 ) => {
+  /** @type {null|string} */
+  let storedPublicKey = null;
+
   /**
    * @param {string=} publicKey
    */

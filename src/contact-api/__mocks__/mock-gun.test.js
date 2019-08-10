@@ -822,53 +822,6 @@ describe("MockGun", () => {
         gun.set([]);
       }).toThrow();
     });
-
-    it("throws when the node was already determined to be a leaf node", done => {
-      expect.assertions(1);
-
-      const gun = createMockGun().get(Math.random().toString());
-
-      gun.put(
-        {
-          [Math.random().toString()]: Math.random()
-        },
-        ack => {
-          if (!ack.err) {
-            expect(() => {
-              gun.set({
-                [Math.random().toString()]: Math.random()
-              });
-            }).toThrow();
-            done();
-          }
-        }
-      );
-    });
-
-    it("throws when the node was beign used as a primtivie", done => {
-      expect.assertions(1);
-
-      const gun = createMockGun().get(Math.random().toString());
-
-      const key = Math.random().toString();
-      const somePrimitiveVal = Math.random();
-
-      gun.put(
-        {
-          [key]: somePrimitiveVal
-        },
-        ack => {
-          if (!ack.err) {
-            expect(() => {
-              gun.get(key).set({
-                [Math.random().toString()]: Math.random()
-              });
-            }).toThrow();
-            done();
-          }
-        }
-      );
-    });
   });
 
   describe("edges", () => {
