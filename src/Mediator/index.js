@@ -8,6 +8,73 @@ import * as Gun from "./gun.js";
  */
 
 /**
+ * @typedef {object} User
+ * @prop {string|null} avatar
+ * @prop {string|null} currentHandshakeAddress
+ * @prop {string|null} displayName
+ * @prop {string} publicKey
+ */
+
+/**
+ * @type {(() => void)[]}
+ */
+const userListeners = [];
+
+/**
+ * @type {Record<string, User>}
+ */
+const users = {};
+
+/**
+ * @param {string} publicKey
+ */
+const createUserForListening = publicKey => {
+  if (users[publicKey]) {
+    return;
+  }
+
+  users[publicKey] = {
+    avatar: null,
+    currentHandshakeAddress: null,
+    displayName: null,
+    publicKey
+  };
+
+  const u = Gun.createGun().user(publicKey);
+
+  userListeners.forEach(l => l());
+
+  u.get(API.Key.PROFILE)
+    .get(API.Key.AVATAR)
+    .on(avatar => {
+      // @ts-ignore
+      users[publicKey].avatar = avatar;
+
+      console.log("here1");
+
+      userListeners.forEach(l => l());
+    });
+
+  u.get(API.Key.PROFILE)
+    .get(API.Key.DISPLAY_NAME)
+    .on(displayName => {
+      console.log("here2");
+      // @ts-ignore
+      users[publicKey].displayName = displayName;
+
+      userListeners.forEach(l => l());
+    });
+
+  u.get(API.Key.CURRENT_HANDSHAKE_NODE).on(hn => {
+    console.log("here3");
+    // @ts-ignore
+    users[publicKey].currentHandshakeAddress = hn === null ? null : hn._["#"];
+
+    userListeners.forEach(l => l());
+  });
+};
+
+/**
  * @typedef {object} Emission
  * @prop {boolean} ok
  * @prop {string|null|Record<string, any>} msg
@@ -42,6 +109,7 @@ export default class Mediator {
     socket.on(Action.SET_AVATAR, this.setAvatar);
     socket.on(Action.SET_DISPLAY_NAME, this.setDisplayName);
 
+    socket.on(Event.ON_ALL_USERS, this.onAllUsers);
     socket.on(Event.ON_AVATAR, this.onAvatar);
     socket.on(Event.ON_BLACKLIST, this.onBlacklist);
     socket.on(Event.ON_CHATS, this.onChats);
@@ -50,6 +118,12 @@ export default class Mediator {
     socket.on(Event.ON_RECEIVED_REQUESTS, this.onReceivedRequests);
     socket.on(Event.ON_SENT_REQUESTS, this.onSentRequests);
   }
+
+  /**
+   * @private
+   * @type {(() => void)|null}
+   */
+  userListener = null;
 
   /**
    * @param {Readonly<{ requestID: string , token: string }>} body
@@ -149,6 +223,12 @@ export default class Mediator {
     API.Actions.authenticate(alias, pass, user)
       .then(() => {
         emitAuth();
+
+        if (user.is) {
+          createUserForListening(user.is.pub);
+        } else {
+          console.warn("couldnt get user.is after authenticating");
+        }
 
         API.Jobs.onAcceptedRequests(API.Events.onSentRequests, user);
       })
@@ -473,6 +553,48 @@ export default class Mediator {
           });
         }
       });
+  };
+
+  //////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * @param {Readonly<{ token: string }>} body
+   */
+  onAllUsers = body => {
+    const { token } = body;
+
+    const user = Gun.getUserForToken(token);
+
+    if (user === null) {
+      this.socket.emit(Event.ON_ALL_USERS, {
+        ok: false,
+        msg: "Token expired.",
+        origBody: body
+      });
+
+      return;
+    }
+
+    this.userListener = () => {
+      if (this.connected) {
+        this.socket.emit(Event.ON_ALL_USERS, {
+          ok: true,
+          msg: Object.values(users).filter(u => {
+            if (user.is) {
+              return u.publicKey !== user.is.pub;
+            } else {
+              console.error("u.is undefined");
+              return true;
+            }
+          }),
+          origBody: body
+        });
+      }
+    };
+
+    this.userListener();
+
+    userListeners.push(this.userListener);
   };
 
   /**
