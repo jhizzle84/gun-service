@@ -144,12 +144,35 @@ export default class Mediator {
 
     API.Actions.acceptRequest(requestID, user)
       .then(() => {
-        if (this.connected) {
+        const connectedAndAuthed =
+          this.connected && !!Gun.getUserForToken(token);
+
+        if (connectedAndAuthed) {
           this.socket.emit(Action.ACCEPT_REQUEST, {
             ok: true,
             msg: null,
             origBody: body
           });
+
+          // refresh received requests
+
+          let sent = false;
+
+          API.Events.onSimplerReceivedRequests(
+            receivedRequests => {
+              if (this.connected && !!Gun.getUserForToken(token) && !sent) {
+                sent = true;
+
+                this.socket.emit(Event.ON_RECEIVED_REQUESTS, {
+                  msg: receivedRequests,
+                  ok: true,
+                  origBody: { token }
+                });
+              }
+            },
+            Gun.createGun(),
+            user
+          );
         }
       })
       .catch(e => {
