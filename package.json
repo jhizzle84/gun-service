@@ -38,10 +38,9 @@
   "dependencies": {
     "dotenv": "^8.0.0",
     "express": "^4.17.1",
-    "gun": "^0.2019.712",
+    "gun": "^0.2019.915",
     "jest": "^24.8.0",
     "lodash": "^4.17.15",
-    "node-webcrypto-ossl": "^1.0.48",
     "socket.io": "^2.2.0",
     "text-encoding": "^0.7.0",
     "uuid": "^3.3.2"
